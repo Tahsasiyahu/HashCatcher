@@ -1,0 +1,117 @@
+name: HashCatcher Release Pipeline
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+
+  linux-build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+
+          sudo apt install -y \
+            python3 \
+            python3-pip \
+            python3-pyside6 \
+            hcxtools \
+            hashcat \
+            dpkg-dev \
+            wget
+
+      - name: Install Python Packages
+        run: |
+          pip install pyinstaller
+
+      - name: Build Linux Executable
+        run: |
+          pyinstaller \
+            --onefile \
+            --windowed \
+            src/main.py \
+            --name HashCatcher
+
+      - name: Build Debian Package
+        run: |
+          chmod +x scripts/build_deb.sh
+          ./scripts/build_deb.sh
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.deb
+
+  windows-build:
+    runs-on: windows-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Python Packages
+        run: |
+          pip install pyinstaller
+
+      - name: Build Windows Executable
+        run: |
+          pyinstaller ^
+            --onefile ^
+            --windowed ^
+            --name HashCatcher ^
+            src/main.py
+
+      - name: Upload Windows Build
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+
+  macos-build:
+    runs-on: macos-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          brew install python
+
+      - name: Install Python Packages
+        run: |
+          pip3 install pyinstaller
+
+      - name: Build macOS App
+        run: |
+          pyinstaller \
+            --onefile \
+            --windowed \
+            --name HashCatcher \
+            src/main.py
+
+      - name: Create DMG
+        run: |
+          hdiutil create \
+            -volname HashCatcher \
+            -srcfolder dist \
+            -ov \
+            -format UDZO \
+            HashCatcher.dmg
+
+      - name: Upload macOS Build
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            HashCatcher.dmg
