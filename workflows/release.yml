@@ -25,8 +25,7 @@ jobs:
             python3-pyside6 \
             hcxtools \
             hashcat \
-            dpkg-dev \
-            wget
+            dpkg-dev
 
       - name: Install Python Packages
         run: |
@@ -40,16 +39,19 @@ jobs:
             src/main.py \
             --name HashCatcher
 
-      - name: Build Debian Package
+      - name: Create dist folder
         run: |
-          chmod +x scripts/build_deb.sh
-          ./scripts/build_deb.sh
+          mkdir -p dist
 
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v2
+      - name: Copy executable
+        run: |
+          cp dist/HashCatcher dist/hashcatcher-linux
+
+      - name: Upload Linux Build
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            dist/*.deb
+          name: hashcatcher-linux
+          path: dist/hashcatcher-linux
 
   windows-build:
     runs-on: windows-latest
@@ -68,14 +70,14 @@ jobs:
           pyinstaller ^
             --onefile ^
             --windowed ^
-            --name HashCatcher ^
-            src/main.py
+            src/main.py ^
+            --name HashCatcher
 
       - name: Upload Windows Build
-        uses: softprops/action-gh-release@v2
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            dist/*.exe
+          name: hashcatcher-windows
+          path: dist/HashCatcher.exe
 
   macos-build:
     runs-on: macos-latest
@@ -84,10 +86,6 @@ jobs:
 
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Install Dependencies
-        run: |
-          brew install python
 
       - name: Install Python Packages
         run: |
@@ -98,20 +96,11 @@ jobs:
           pyinstaller \
             --onefile \
             --windowed \
-            --name HashCatcher \
-            src/main.py
-
-      - name: Create DMG
-        run: |
-          hdiutil create \
-            -volname HashCatcher \
-            -srcfolder dist \
-            -ov \
-            -format UDZO \
-            HashCatcher.dmg
+            src/main.py \
+            --name HashCatcher
 
       - name: Upload macOS Build
-        uses: softprops/action-gh-release@v2
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            HashCatcher.dmg
+          name: hashcatcher-macos
+          path: dist/HashCatcher
