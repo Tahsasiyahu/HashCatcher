@@ -1,0 +1,128 @@
+import sys
+import subprocess
+from pathlib import Path
+
+from PySide6.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QPushButton,
+    QLabel,
+    QFileDialog,
+    QListWidget,
+    QMessageBox,
+)
+
+from PySide6.QtCore import Qt
+
+
+class HashCatcher(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("HashCatcher")
+        self.resize(900, 600)
+
+        self.files = []
+
+        layout = QVBoxLayout()
+
+        self.title = QLabel("HashCatcher")
+        self.title.setAlignment(Qt.AlignCenter)
+        self.title.setStyleSheet("""
+            font-size: 34px;
+            font-weight: bold;
+            color: #ff4d7a;
+            margin: 20px;
+        """)
+
+        layout.addWidget(self.title)
+
+        self.list_widget = QListWidget()
+        layout.addWidget(self.list_widget)
+
+        self.add_btn = QPushButton("Add Capture Files")
+        self.add_btn.clicked.connect(self.add_files)
+
+        self.convert_btn = QPushButton("Convert to 22000")
+        self.convert_btn.clicked.connect(self.convert_files)
+
+        button_style = """
+            QPushButton {
+                background-color: #c2185b;
+                color: white;
+                border-radius: 10px;
+                padding: 14px;
+                font-size: 16px;
+            }
+
+            QPushButton:hover {
+                background-color: #ff4d7a;
+            }
+        """
+
+        self.add_btn.setStyleSheet(button_style)
+        self.convert_btn.setStyleSheet(button_style)
+
+        layout.addWidget(self.add_btn)
+        layout.addWidget(self.convert_btn)
+
+        self.setStyleSheet("""
+            background-color: #0f0a0d;
+            color: white;
+        """)
+
+        self.setLayout(layout)
+
+    def add_files(self):
+        files, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Select Capture Files",
+            "",
+            "Capture Files (*.cap *.pcap *.pcapng)"
+        )
+
+        for file in files:
+            self.files.append(file)
+            self.list_widget.addItem(file)
+
+    def convert_files(self):
+        if not self.files:
+            QMessageBox.warning(self, "No Files", "Please add capture files.")
+            return
+
+        for file in self.files:
+            output = Path(file).with_suffix(".22000")
+
+            command = [
+                "hcxpcapngtool",
+                "-o",
+                str(output),
+                file
+            ]
+
+            try:
+                subprocess.run(command, check=True)
+
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Conversion Failed",
+                    str(e)
+                )
+                return
+
+        QMessageBox.information(
+            self,
+            "Done",
+            "Conversion completed successfully."
+        )
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+
+    window = HashCatcher()
+    window.show()
+
+    sys.exit(app.exec())
